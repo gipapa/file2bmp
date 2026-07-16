@@ -1,9 +1,11 @@
-# File <-> BMP 雙向無損轉換器 — 完整實作規格 v2.1
+# File <-> BMP 雙向無損轉換器 — 完整實作規格 v2.2
 
 > 來源：規格照片 1-15，已依照片編號順序整理。
 > 目標：建立零伺服器、零依賴、單檔 HTML 的純前端工具，將任意二進位檔案封裝成可由一般圖片檢視器開啟的 24-bit BMP，並可從 BMP 完整還原原始檔案。
 >
 > v2.1 修訂：修正 v2.0 將 payload bytes 誤當成 pixel count 的尺寸公式；補齊解碼邊界、輸入上限語意與可驗收測試。
+>
+> v2.2 修訂：將原始檔案硬性上限由 150 MiB 提高至 300 MiB，並同步調整解碼端 BMP 上限與記憶體需求說明。
 
 ## 0. 概覽
 
@@ -15,7 +17,7 @@
 - SHA-256 Checksum（完整 32-byte digest 顯示、前 8 bytes 存檔）驗證往返完整性
 - 4:3 比例最佳化 + Row Padding 最小化
 - Bottom-Up scanline（BMP 標準正高度）
-- 原始檔案 150 MiB 硬性上限；解碼端依可承載 150 MiB 原檔的最大 BMP 尺寸驗證
+- 原始檔案 300 MiB 硬性上限；解碼端依可承載 300 MiB 原檔的最大 BMP 尺寸驗證
 
 ## 1. 二進位 Payload 格式
 
@@ -34,7 +36,7 @@ Payload 由 BMP 像素資料區承載。解碼時，將像素中的 BGR 位元�
 
 限制：
 
-- `Original File Size <= 150 * 1024 * 1024`
+- `Original File Size <= 300 * 1024 * 1024`
 - `Filename Length <= 1024` bytes，避免異常 metadata 造成過量配置
 - Decoder 在讀取任何切片前，必須先驗證 `28 + N + M <= pixelPayloadCapacity`
 
@@ -83,7 +85,7 @@ bmpFileSize = 54 + pixelDataSize
 
 ### Step 1 — 檔案驗證與讀取
 
-1. 檢查 `file.size <= 150 * 1024 * 1024`，超限即拒絕。
+1. 檢查 `file.size <= 300 * 1024 * 1024`，超限即拒絕。
 2. Sanitize 後的 UTF-8 檔名不可超過 1024 bytes；超過時拒絕並提示縮短檔名。
 3. 使用 `FileReader.readAsArrayBuffer(file)` 讀入 Buffer。
 4. 使用 `FileReader.onprogress` 更新進度條，讀檔階段顯示百分比。
@@ -203,7 +205,7 @@ URL.revokeObjectURL(url);
 
 ### Step 1 — 檔案驗證
 
-BMP 本身可能比內含原檔多出 payload/header/padding，因此不能直接套用原檔 150 MiB 上限。Decoder 先用「150 MiB 原檔 + 1024-byte 檔名」計算可接受的最大 BMP 大小；解析 payload 後再確認 `Original File Size <= 150 MiB`。
+BMP 本身可能比內含原檔多出 payload/header/padding，因此不能直接套用原檔 300 MiB 上限。Decoder 先用「300 MiB 原檔 + 1024-byte 檔名」計算可接受的最大 BMP 大小；解析 payload 後再確認 `Original File Size <= 300 MiB`。
 
 ### Step 2 — 讀取 BMP
 
@@ -262,7 +264,7 @@ if payloadView.getUint32(16, true) != 0 -> 拋出錯誤（Reserved 必須為 0�
 originalFileSize = payloadView.getUint32(20, true)
 filenameUtf8Len  = payloadView.getUint32(24, true)
 
-if originalFileSize > 150 MiB -> 拋出錯誤
+if originalFileSize > 300 MiB -> 拋出錯誤
 if filenameUtf8Len > 1024 -> 拋出錯誤
 if 28 + filenameUtf8Len + originalFileSize > extracted.byteLength -> 拋出錯誤
 
@@ -298,8 +300,8 @@ URL.revokeObjectURL(url);
 
 | 情境 | 行為 |
 |---|---|
-| 原始檔案超過 150 MiB | 阻斷，顯示友善錯誤訊息 |
-| BMP 超過可承載 150 MiB 原檔的理論最大值 | 阻斷，顯示友善錯誤訊息 |
+| 原始檔案超過 300 MiB | 阻斷，顯示友善錯誤訊息 |
+| BMP 超過可承載 300 MiB 原檔的理論最大值 | 阻斷，顯示友善錯誤訊息 |
 | Header 宣告長度、像素長度或 payload metadata 超出實際檔案 | 阻斷，顯示檔案遭截斷或格式不符 |
 | BMP 非有效格式（BM magic / offset / DIB / bpp / compression） | 拋出錯誤，顯示解析失敗 |
 | Magic != `"F2BI"` | 拋出錯誤，提示非本工具產生 |
@@ -326,7 +328,7 @@ URL.revokeObjectURL(url);
 
 ### 總覽
 
-峰值約為**原始檔案的 3 倍**（Blob 是否複製 backing store 依瀏覽器實作而定）。對 150 MiB 檔案，實務上應預留至少約 450 MiB 可用記憶體。
+峰值約為**原始檔案的 3 倍**（Blob 是否複製 backing store 依瀏覽器實作而定）。對 300 MiB 檔案，實務上應預留至少約 900 MiB 可用記憶體。
 
 ## 7. UI 規格
 
@@ -370,3 +372,12 @@ URL.revokeObjectURL(url);
 - 核心錯誤測試通過：無效 BMP、合法但無 F2BI magic、截斷 BMP、不支援 version、checksum mismatch、超限輸入、過長 filename metadata、reserved 欄位錯誤。
 - 空檔案與 UTF-8 檔名往返通過。
 - 1440 px、390 px 與 320 px viewport 已檢查；320 px 下 `scrollWidth === clientWidth`，無水平溢出，瀏覽器 console/page errors 為空。
+
+## 11. 2026-07-17 300 MiB 上限驗證
+
+- `MAX_ORIGINAL_BYTES` 已確認為 `314,572,800` bytes（300 MiB）。
+- 以 1024-byte 最大檔名計算時，payload 為 `314,573,852` bytes，輸出尺寸為 `11828 x 8866`，理論最大 BMP 為 `314,601,198` bytes，像素容量足以承載完整 payload。
+- Encoder 對 `300 MiB + 1 byte` 輸入會在讀檔前拒絕，Decoder 亦會拒絕超過理論最大 BMP 大小的輸入。
+- 1 MiB + 17 bytes 樣本（UTF-8 檔名）在真實瀏覽器完成往返，還原 bytes 完全一致且 checksum 通過。
+- UI 的頂部限制與拖放提示均顯示 300 MiB；瀏覽器 console/page errors 為空。
+- 完整 300 MiB 往返未列入自動回歸測試，因現行全記憶體模型預期需要約 900 MiB 可用記憶體。

@@ -675,7 +675,7 @@
           <div class="version">F2BI format v1</div>
         </div>
       </div>
-      <div class="limit"><span class="limit-dot" aria-hidden="true"></span>150 MiB</div>
+      <div class="limit"><span class="limit-dot" aria-hidden="true"></span>300 MiB</div>
     </header>
 
     <section class="app" aria-label="檔案與 BMP 雙向轉換工具">
@@ -694,7 +694,7 @@
             <span class="drop-content">
               <span class="file-glyph" aria-hidden="true"></span>
               <span class="drop-title" id="drop-title">拖放檔案或選擇檔案</span>
-              <span class="drop-note" id="drop-note">任意格式 · 上限 150 MiB</span>
+              <span class="drop-note" id="drop-note">任意格式 · 上限 300 MiB</span>
             </span>
           </label>
 
@@ -779,7 +779,7 @@
     "use strict";
 
     (() => {
-      const MAX_ORIGINAL_BYTES = 150 * 1024 * 1024;
+      const MAX_ORIGINAL_BYTES = 300 * 1024 * 1024;
       const MAX_FILENAME_BYTES = 1024;
       const PAYLOAD_HEADER_BYTES = 28;
       const BMP_HEADER_BYTES = 54;
@@ -858,7 +858,7 @@
 
       function validateOriginalFile(file) {
         if (!file || typeof file.size !== "number") throw new Error("請選擇有效檔案。");
-        if (file.size > MAX_ORIGINAL_BYTES) throw new Error("原始檔案不可超過 150 MiB。");
+        if (file.size > MAX_ORIGINAL_BYTES) throw new Error("原始檔案不可超過 300 MiB。");
       }
 
       async function encodeFileToBmp(file, hooks = {}) {
@@ -972,7 +972,7 @@
 
       async function decodeBmpToFile(file, hooks = {}) {
         if (!file || typeof file.size !== "number") throw new Error("請選擇有效 BMP 檔案。");
-        if (file.size > MAX_BMP_BYTES) throw new Error("BMP 超過可承載 150 MiB 原始檔案的最大尺寸。");
+        if (file.size > MAX_BMP_BYTES) throw new Error("BMP 超過可承載 300 MiB 原始檔案的最大尺寸。");
 
         hooks.onProgress?.(4, "讀取 BMP 檔案");
         const bmpBuffer = await readFileAsArrayBuffer(file, (ratio) => {
@@ -1015,7 +1015,7 @@
 
         const originalFileSize = payloadView.getUint32(20, true);
         const filenameLength = payloadView.getUint32(24, true);
-        if (originalFileSize > MAX_ORIGINAL_BYTES) throw new Error("內含原始檔案超過 150 MiB 上限。");
+        if (originalFileSize > MAX_ORIGINAL_BYTES) throw new Error("內含原始檔案超過 300 MiB 上限。");
         if (filenameLength > MAX_FILENAME_BYTES) throw new Error("F2BI 檔名 metadata 超過 1024 bytes。");
 
         const filenameEnd = PAYLOAD_HEADER_BYTES + filenameLength;
@@ -1140,7 +1140,7 @@
         elements.panel.setAttribute("aria-labelledby", selectedTab.id);
         elements.inputHeading.textContent = mode === "encode" ? "來源檔案" : "來源 BMP";
         elements.dropTitle.textContent = mode === "encode" ? "拖放檔案或選擇檔案" : "拖放 BMP 或選擇檔案";
-        elements.dropNote.textContent = mode === "encode" ? "任意格式 · 上限 150 MiB" : "file2bmp 產生的 24-bit BMP";
+        elements.dropNote.textContent = mode === "encode" ? "任意格式 · 上限 300 MiB" : "file2bmp 產生的 24-bit BMP";
         elements.fileInput.accept = mode === "decode" ? ".bmp,image/bmp" : "";
         elements.estimateRow.hidden = mode === "decode";
         resetFileState();
