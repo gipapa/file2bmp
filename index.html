@@ -1,0 +1,1323 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>file2bmp</title>
+  <style>
+    :root {
+      --ink: #171918;
+      --muted: #666b68;
+      --line: #d9ddda;
+      --soft: #f2f4f3;
+      --paper: #ffffff;
+      --accent: #087f67;
+      --accent-dark: #05624f;
+      --accent-soft: #e5f5f0;
+      --warn: #9a6500;
+      --warn-soft: #fff5d8;
+      --error: #b52b35;
+      --error-soft: #fff0f1;
+      --focus: #1f6feb;
+      --shadow: 0 18px 45px rgba(23, 25, 24, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 320px;
+      background: #eef0ef;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background: linear-gradient(180deg, #ffffff 0, #ffffff 174px, #eef0ef 174px);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    [tabindex]:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--focus) 35%, transparent);
+      outline-offset: 2px;
+    }
+
+    .shell {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 44px;
+    }
+
+    .topbar {
+      min-height: 96px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      color: #fff;
+      background: var(--ink);
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    .version {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .limit {
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      background: var(--paper);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .limit-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .app {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .tabs-wrap {
+      padding: 15px 18px 0;
+      border-bottom: 1px solid var(--line);
+      background: #fafbfa;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: min(440px, 100%);
+      min-height: 42px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--soft);
+    }
+
+    .tab {
+      min-width: 0;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 680;
+    }
+
+    .tab[aria-selected="true"] {
+      color: var(--ink);
+      background: var(--paper);
+      box-shadow: 0 1px 4px rgba(23, 25, 24, 0.12);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+      min-height: 510px;
+    }
+
+    .input-pane,
+    .output-pane {
+      min-width: 0;
+      padding: 26px;
+    }
+
+    .input-pane {
+      border-right: 1px solid var(--line);
+    }
+
+    .pane-heading {
+      margin: 0 0 16px;
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 740;
+    }
+
+    .drop-zone {
+      position: relative;
+      min-height: 190px;
+      display: grid;
+      place-items: center;
+      padding: 30px 24px;
+      border: 1px dashed #aeb5b1;
+      border-radius: 7px;
+      background: #fafbfa;
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.is-dragging {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .drop-zone.is-dragging {
+      transform: translateY(-2px);
+    }
+
+    .drop-zone.is-busy {
+      cursor: progress;
+      pointer-events: none;
+    }
+
+    .drop-content {
+      display: block;
+      max-width: 320px;
+      text-align: center;
+    }
+
+    .file-glyph {
+      display: block;
+      width: 46px;
+      height: 56px;
+      margin: 0 auto 17px;
+      position: relative;
+      border: 2px solid var(--ink);
+      border-radius: 5px;
+      background: var(--paper);
+    }
+
+    .file-glyph::before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 15px;
+      height: 15px;
+      border-bottom: 2px solid var(--ink);
+      border-left: 2px solid var(--ink);
+      background: #fafbfa;
+    }
+
+    .file-glyph::after {
+      content: "";
+      position: absolute;
+      left: 10px;
+      bottom: 12px;
+      width: 22px;
+      height: 2px;
+      background: var(--accent);
+      box-shadow: 0 -7px 0 var(--accent);
+    }
+
+    .drop-zone.is-dragging .file-glyph::before {
+      background: var(--accent-soft);
+    }
+
+    .drop-title {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.4;
+      font-weight: 720;
+    }
+
+    .drop-note {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .file-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .file-info {
+      margin-top: 22px;
+      border-top: 1px solid var(--line);
+    }
+
+    .info-row {
+      min-height: 45px;
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    .info-label {
+      color: var(--muted);
+    }
+
+    .info-value {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-weight: 610;
+    }
+
+    .info-value.mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      font-weight: 540;
+    }
+
+    .icon-action {
+      min-width: 48px;
+      min-height: 28px;
+      padding: 0 8px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: var(--paper);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .icon-action:hover {
+      color: var(--ink);
+      border-color: #aeb5b1;
+    }
+
+    .progress-wrap {
+      margin-top: 20px;
+    }
+
+    .progress-meta {
+      min-height: 22px;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .progress-track {
+      height: 7px;
+      overflow: hidden;
+      border-radius: 4px;
+      background: #e4e7e5;
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--accent);
+      transition: width 160ms ease;
+    }
+
+    .output-pane {
+      display: flex;
+      flex-direction: column;
+      background: #fcfdfc;
+    }
+
+    .result-empty {
+      flex: 1;
+      min-height: 300px;
+      display: grid;
+      place-items: center;
+      padding: 30px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .empty-mark {
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 14px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: var(--paper);
+      color: #8b918d;
+      font-size: 24px;
+      font-weight: 300;
+    }
+
+    .empty-text {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .result {
+      display: none;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--accent);
+      border-radius: 7px;
+      background: var(--paper);
+    }
+
+    .result.is-visible {
+      display: block;
+    }
+
+    .result.is-warning {
+      border-left-color: var(--warn);
+      background: var(--warn-soft);
+    }
+
+    .result.is-error {
+      border-left-color: var(--error);
+      background: var(--error-soft);
+    }
+
+    .result-header {
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+    }
+
+    .status-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .status-icon {
+      width: 23px;
+      height: 23px;
+      flex: 0 0 23px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--accent);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .result.is-warning .status-icon {
+      background: var(--warn);
+    }
+
+    .result.is-error .status-icon {
+      background: var(--error);
+    }
+
+    .result-title {
+      margin: 1px 0 0;
+      font-size: 16px;
+      line-height: 1.3;
+      font-weight: 740;
+    }
+
+    .result-message {
+      margin: 7px 0 0 33px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .result-body {
+      padding: 6px 18px 18px;
+    }
+
+    .result-row {
+      min-height: 48px;
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+      font-size: 13px;
+    }
+
+    .result-row:last-of-type {
+      border-bottom: 0;
+    }
+
+    .download-button {
+      width: 100%;
+      min-height: 44px;
+      margin-top: 16px;
+      border: 1px solid var(--accent-dark);
+      border-radius: 6px;
+      color: #fff;
+      background: var(--accent);
+      cursor: pointer;
+      font-weight: 720;
+    }
+
+    .download-button:hover {
+      background: var(--accent-dark);
+    }
+
+    .download-button:disabled,
+    .icon-action:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-top: 14px;
+      color: #747a76;
+      font-size: 12px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        background: linear-gradient(180deg, #ffffff 0, #ffffff 150px, #eef0ef 150px);
+      }
+
+      .shell {
+        width: min(100% - 20px, 620px);
+        padding-top: 24px;
+      }
+
+      .topbar {
+        min-height: 90px;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      .limit {
+        padding: 0 9px;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .input-pane,
+      .output-pane {
+        padding: 20px;
+      }
+
+      .input-pane {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .drop-zone {
+        min-height: 170px;
+      }
+
+      .result-empty {
+        min-height: 210px;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .shell {
+        width: calc(100% - 14px);
+      }
+
+      .topbar {
+        gap: 12px;
+      }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+        flex-basis: 38px;
+      }
+
+      h1 {
+        font-size: 23px;
+      }
+
+      .version {
+        font-size: 12px;
+      }
+
+      .limit {
+        min-height: 30px;
+        font-size: 11px;
+      }
+
+      .tabs-wrap {
+        padding: 12px 12px 0;
+      }
+
+      .tabs {
+        width: 100%;
+      }
+
+      .input-pane,
+      .output-pane {
+        padding: 16px;
+      }
+
+      .drop-zone {
+        min-height: 156px;
+        padding: 24px 14px;
+      }
+
+      .file-glyph {
+        transform: scale(0.86);
+        margin-bottom: 10px;
+      }
+
+      .drop-title {
+        font-size: 15px;
+      }
+
+      .info-row {
+        grid-template-columns: 82px minmax(0, 1fr) auto;
+        gap: 8px;
+      }
+
+      .info-value.mono {
+        font-size: 11px;
+      }
+
+      .result-row {
+        grid-template-columns: 78px minmax(0, 1fr);
+      }
+
+      .footer {
+        flex-direction: column;
+        gap: 5px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">F2</div>
+        <div>
+          <h1>file2bmp</h1>
+          <div class="version">F2BI format v1</div>
+        </div>
+      </div>
+      <div class="limit"><span class="limit-dot" aria-hidden="true"></span>150 MiB</div>
+    </header>
+
+    <section class="app" aria-label="檔案與 BMP 雙向轉換工具">
+      <div class="tabs-wrap">
+        <div class="tabs" role="tablist" aria-label="轉換模式">
+          <button class="tab" id="encode-tab" type="button" role="tab" aria-selected="true" aria-controls="tool-panel" data-mode="encode">File to BMP</button>
+          <button class="tab" id="decode-tab" type="button" role="tab" aria-selected="false" aria-controls="tool-panel" data-mode="decode">BMP to File</button>
+        </div>
+      </div>
+
+      <div class="workspace" id="tool-panel" role="tabpanel" aria-labelledby="encode-tab">
+        <section class="input-pane">
+          <h2 class="pane-heading" id="input-heading">來源檔案</h2>
+          <label class="drop-zone" id="drop-zone" tabindex="0">
+            <input class="file-input" id="file-input" type="file">
+            <span class="drop-content">
+              <span class="file-glyph" aria-hidden="true"></span>
+              <span class="drop-title" id="drop-title">拖放檔案或選擇檔案</span>
+              <span class="drop-note" id="drop-note">任意格式 · 上限 150 MiB</span>
+            </span>
+          </label>
+
+          <div class="file-info" id="file-info" hidden>
+            <div class="info-row">
+              <span class="info-label">檔名</span>
+              <span class="info-value" id="source-name">-</span>
+              <button class="icon-action" id="copy-name" type="button">複製</button>
+            </div>
+            <div class="info-row">
+              <span class="info-label">大小</span>
+              <span class="info-value" id="source-size">-</span>
+              <span></span>
+            </div>
+            <div class="info-row" id="estimate-row">
+              <span class="info-label">預估 BMP</span>
+              <span class="info-value" id="estimated-size">-</span>
+              <span></span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">SHA-256</span>
+              <span class="info-value mono" id="source-sha">尚未計算</span>
+              <button class="icon-action" id="copy-sha" type="button" disabled>複製</button>
+            </div>
+          </div>
+
+          <div class="progress-wrap" id="progress-wrap" hidden>
+            <div class="progress-meta">
+              <span id="progress-stage">準備中</span>
+              <span id="progress-percent">0%</span>
+            </div>
+            <div class="progress-track" role="progressbar" aria-label="轉換進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div class="progress-bar" id="progress-bar"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="output-pane" aria-live="polite">
+          <h2 class="pane-heading">轉換結果</h2>
+          <div class="result-empty" id="result-empty">
+            <div>
+              <div class="empty-mark" aria-hidden="true">↔</div>
+              <p class="empty-text" id="empty-text">等待來源檔案</p>
+            </div>
+          </div>
+
+          <div class="result" id="result" role="status">
+            <div class="result-header">
+              <div class="status-line">
+                <span class="status-icon" id="status-icon" aria-hidden="true">✓</span>
+                <h3 class="result-title" id="result-title">轉換完成</h3>
+              </div>
+              <p class="result-message" id="result-message"></p>
+            </div>
+            <div class="result-body" id="result-body">
+              <div class="result-row" id="output-name-row">
+                <span class="info-label">輸出檔名</span>
+                <span class="info-value" id="output-name">-</span>
+              </div>
+              <div class="result-row" id="output-size-row">
+                <span class="info-label">輸出大小</span>
+                <span class="info-value" id="output-size">-</span>
+              </div>
+              <div class="result-row" id="dimensions-row">
+                <span class="info-label">BMP 尺寸</span>
+                <span class="info-value" id="dimensions">-</span>
+              </div>
+              <button class="download-button" id="download-button" type="button">下載</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>所有處理皆在此裝置完成</span>
+      <span>24-bit BMP · SHA-256</span>
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    (() => {
+      const MAX_ORIGINAL_BYTES = 150 * 1024 * 1024;
+      const MAX_FILENAME_BYTES = 1024;
+      const PAYLOAD_HEADER_BYTES = 28;
+      const BMP_HEADER_BYTES = 54;
+      const FORMAT_VERSION = 1;
+      const MAGIC = new Uint8Array([0x46, 0x32, 0x42, 0x49]);
+      const textEncoder = new TextEncoder();
+      const textDecoder = new TextDecoder("utf-8", { fatal: true });
+
+      function sanitizeFilename(name) {
+        return String(name || "")
+          .split(/[\\/]/).pop()
+          .replace(/[\u0000-\u001f?*:\"><|]/g, "")
+          .replace(/^[.\s]+|[.\s]+$/g, "") || "unknown";
+      }
+
+      function calculateDimensions(payloadBytes) {
+        if (!Number.isSafeInteger(payloadBytes) || payloadBytes < PAYLOAD_HEADER_BYTES) {
+          throw new Error("Payload 大小無效。");
+        }
+
+        const requiredPixels = Math.ceil(payloadBytes / 3);
+        const rawWidth = Math.ceil(Math.sqrt(requiredPixels * 4 / 3));
+        const width = Math.max(4, rawWidth + ((4 - rawWidth % 4) % 4));
+        const height = Math.max(1, Math.ceil(requiredPixels / width));
+        const rowSize = Math.ceil((width * 3) / 4) * 4;
+        const pixelDataSize = rowSize * height;
+        const bmpFileSize = BMP_HEADER_BYTES + pixelDataSize;
+
+        if (![width, height, rowSize, pixelDataSize, bmpFileSize].every(Number.isSafeInteger)) {
+          throw new Error("檔案過大，無法安全計算 BMP 尺寸。");
+        }
+
+        return { requiredPixels, width, height, rowSize, pixelDataSize, bmpFileSize };
+      }
+
+      const maxPayloadBytes = PAYLOAD_HEADER_BYTES + MAX_FILENAME_BYTES + MAX_ORIGINAL_BYTES;
+      const MAX_BMP_BYTES = calculateDimensions(maxPayloadBytes).bmpFileSize;
+
+      function assertCrypto() {
+        if (!globalThis.crypto || !globalThis.crypto.subtle) {
+          throw new Error("此瀏覽器不支援 Web Crypto API，無法計算 SHA-256。");
+        }
+      }
+
+      async function sha256(data) {
+        assertCrypto();
+        const digest = await crypto.subtle.digest("SHA-256", data);
+        return new Uint8Array(digest);
+      }
+
+      function toHex(bytes) {
+        return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+      }
+
+      function equalBytes(a, b) {
+        if (a.byteLength !== b.byteLength) return false;
+        let diff = 0;
+        for (let i = 0; i < a.byteLength; i += 1) diff |= a[i] ^ b[i];
+        return diff === 0;
+      }
+
+      function readFileAsArrayBuffer(file, onProgress) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error("讀取檔案失敗。"));
+          reader.onabort = () => reject(new Error("讀取已取消。"));
+          reader.onprogress = (event) => {
+            if (event.lengthComputable && onProgress) {
+              onProgress(event.total === 0 ? 1 : event.loaded / event.total);
+            }
+          };
+          reader.onload = () => resolve(reader.result);
+          reader.readAsArrayBuffer(file);
+        });
+      }
+
+      function validateOriginalFile(file) {
+        if (!file || typeof file.size !== "number") throw new Error("請選擇有效檔案。");
+        if (file.size > MAX_ORIGINAL_BYTES) throw new Error("原始檔案不可超過 150 MiB。");
+      }
+
+      async function encodeFileToBmp(file, hooks = {}) {
+        validateOriginalFile(file);
+        const sanitizedName = sanitizeFilename(file.name);
+        const filenameBytes = textEncoder.encode(sanitizedName);
+        if (filenameBytes.byteLength > MAX_FILENAME_BYTES) {
+          throw new Error("UTF-8 檔名不可超過 1024 bytes，請縮短檔名。");
+        }
+
+        hooks.onStage?.("讀取來源檔案", 4);
+        const fileBuffer = await readFileAsArrayBuffer(file, (ratio) => {
+          hooks.onProgress?.(4 + Math.round(ratio * 24), "讀取來源檔案");
+        });
+        const fileBytes = new Uint8Array(fileBuffer);
+
+        hooks.onProgress?.(34, "計算 SHA-256");
+        const digest = await sha256(fileBytes);
+        const payloadBytes = PAYLOAD_HEADER_BYTES + filenameBytes.byteLength + fileBytes.byteLength;
+        const dimensions = calculateDimensions(payloadBytes);
+
+        hooks.onProgress?.(52, "建立 F2BI payload");
+        const payload = new Uint8Array(payloadBytes);
+        const payloadView = new DataView(payload.buffer);
+        payload.set(MAGIC, 0);
+        payloadView.setUint32(4, FORMAT_VERSION, true);
+        payload.set(digest.subarray(0, 8), 8);
+        payloadView.setUint32(16, 0, true);
+        payloadView.setUint32(20, fileBytes.byteLength, true);
+        payloadView.setUint32(24, filenameBytes.byteLength, true);
+        payload.set(filenameBytes, PAYLOAD_HEADER_BYTES);
+        payload.set(fileBytes, PAYLOAD_HEADER_BYTES + filenameBytes.byteLength);
+
+        hooks.onProgress?.(68, "寫入 BMP 像素");
+        const bmp = new Uint8Array(dimensions.bmpFileSize);
+        let payloadOffset = 0;
+        const channelBytesPerRow = dimensions.width * 3;
+
+        for (let logicalRow = 0; logicalRow < dimensions.height; logicalRow += 1) {
+          const physicalRow = dimensions.height - 1 - logicalRow;
+          const destination = BMP_HEADER_BYTES + physicalRow * dimensions.rowSize;
+          const remaining = payload.byteLength - payloadOffset;
+          const count = Math.min(channelBytesPerRow, Math.max(0, remaining));
+          if (count > 0) {
+            bmp.set(payload.subarray(payloadOffset, payloadOffset + count), destination);
+            payloadOffset += count;
+          }
+          if (logicalRow % 256 === 0) {
+            hooks.onProgress?.(68 + Math.round((logicalRow / dimensions.height) * 22), "寫入 BMP 像素");
+          }
+        }
+
+        if (payloadOffset !== payload.byteLength) throw new Error("BMP 像素容量不足。");
+
+        hooks.onProgress?.(92, "寫入 BMP header");
+        const bmpView = new DataView(bmp.buffer);
+        bmp[0] = 0x42;
+        bmp[1] = 0x4d;
+        bmpView.setUint32(2, dimensions.bmpFileSize, true);
+        bmpView.setUint32(10, BMP_HEADER_BYTES, true);
+        bmpView.setUint32(14, 40, true);
+        bmpView.setInt32(18, dimensions.width, true);
+        bmpView.setInt32(22, dimensions.height, true);
+        bmpView.setUint16(26, 1, true);
+        bmpView.setUint16(28, 24, true);
+        bmpView.setUint32(30, 0, true);
+        bmpView.setUint32(34, dimensions.pixelDataSize, true);
+
+        hooks.onProgress?.(100, "編碼完成");
+        return {
+          bytes: bmp,
+          blob: new Blob([bmp], { type: "image/bmp" }),
+          filename: `${sanitizedName}.bmp`,
+          sourceFilename: sanitizedName,
+          sourceSize: fileBytes.byteLength,
+          checksum: toHex(digest),
+          dimensions,
+          payloadBytes
+        };
+      }
+
+      function validateBmpHeader(bytes) {
+        if (bytes.byteLength < BMP_HEADER_BYTES) throw new Error("BMP 檔案過短或已遭截斷。");
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        if (bytes[0] !== 0x42 || bytes[1] !== 0x4d) throw new Error("不是有效的 BMP 檔案。");
+        if (view.getUint32(2, true) !== bytes.byteLength) throw new Error("BMP header 檔案大小與實際長度不符。");
+        if (view.getUint32(10, true) !== BMP_HEADER_BYTES) throw new Error("不支援此 BMP 像素偏移。");
+        if (view.getUint32(14, true) !== 40) throw new Error("不支援此 BMP DIB header。");
+
+        const width = view.getInt32(18, true);
+        const height = view.getInt32(22, true);
+        if (width <= 0 || width % 4 !== 0) throw new Error("BMP 寬度必須為正數且可被 4 整除。");
+        if (height <= 0) throw new Error("BMP 高度必須為正數（bottom-up）。");
+        if (view.getUint16(26, true) !== 1) throw new Error("BMP planes 必須為 1。");
+        if (view.getUint16(28, true) !== 24) throw new Error("僅支援 24-bit BMP。");
+        if (view.getUint32(30, true) !== 0) throw new Error("僅支援未壓縮的 BI_RGB BMP。");
+
+        const rowSize = Math.ceil((width * 3) / 4) * 4;
+        const pixelDataSize = rowSize * height;
+        if (!Number.isSafeInteger(pixelDataSize) || BMP_HEADER_BYTES + pixelDataSize !== bytes.byteLength) {
+          throw new Error("BMP 像素資料長度不符或檔案已遭截斷。");
+        }
+
+        const declaredImageSize = view.getUint32(34, true);
+        if (declaredImageSize !== 0 && declaredImageSize !== pixelDataSize) {
+          throw new Error("BMP header 的像素資料大小不符。");
+        }
+
+        return { width, height, rowSize, pixelDataSize, bmpFileSize: bytes.byteLength };
+      }
+
+      async function decodeBmpToFile(file, hooks = {}) {
+        if (!file || typeof file.size !== "number") throw new Error("請選擇有效 BMP 檔案。");
+        if (file.size > MAX_BMP_BYTES) throw new Error("BMP 超過可承載 150 MiB 原始檔案的最大尺寸。");
+
+        hooks.onProgress?.(4, "讀取 BMP 檔案");
+        const bmpBuffer = await readFileAsArrayBuffer(file, (ratio) => {
+          hooks.onProgress?.(4 + Math.round(ratio * 24), "讀取 BMP 檔案");
+        });
+        const bytes = new Uint8Array(bmpBuffer);
+
+        hooks.onProgress?.(34, "驗證 BMP 格式");
+        const dimensions = validateBmpHeader(bytes);
+        const capacity = dimensions.width * dimensions.height * 3;
+        if (!Number.isSafeInteger(capacity) || capacity < PAYLOAD_HEADER_BYTES) {
+          throw new Error("BMP 像素容量不足，無法包含 F2BI payload。");
+        }
+
+        hooks.onProgress?.(48, "萃取 F2BI payload");
+        const extracted = new Uint8Array(capacity);
+        const channelBytesPerRow = dimensions.width * 3;
+        for (let logicalRow = 0; logicalRow < dimensions.height; logicalRow += 1) {
+          const physicalRow = dimensions.height - 1 - logicalRow;
+          const source = BMP_HEADER_BYTES + physicalRow * dimensions.rowSize;
+          const destination = logicalRow * channelBytesPerRow;
+          extracted.set(bytes.subarray(source, source + channelBytesPerRow), destination);
+          if (logicalRow % 256 === 0) {
+            hooks.onProgress?.(48 + Math.round((logicalRow / dimensions.height) * 22), "萃取 F2BI payload");
+          }
+        }
+
+        hooks.onProgress?.(74, "驗證 F2BI metadata");
+        if (!equalBytes(extracted.subarray(0, 4), MAGIC)) {
+          throw new Error("此 BMP 不是由 file2bmp 產生（找不到 F2BI magic）。");
+        }
+
+        const payloadView = new DataView(extracted.buffer);
+        if (payloadView.getUint32(4, true) !== FORMAT_VERSION) {
+          throw new Error("不支援此 F2BI 版本，目前僅支援 v1。");
+        }
+        if (payloadView.getUint32(16, true) !== 0) {
+          throw new Error("F2BI reserved 欄位無效。");
+        }
+
+        const originalFileSize = payloadView.getUint32(20, true);
+        const filenameLength = payloadView.getUint32(24, true);
+        if (originalFileSize > MAX_ORIGINAL_BYTES) throw new Error("內含原始檔案超過 150 MiB 上限。");
+        if (filenameLength > MAX_FILENAME_BYTES) throw new Error("F2BI 檔名 metadata 超過 1024 bytes。");
+
+        const filenameEnd = PAYLOAD_HEADER_BYTES + filenameLength;
+        const contentEnd = filenameEnd + originalFileSize;
+        if (!Number.isSafeInteger(contentEnd) || contentEnd > extracted.byteLength) {
+          throw new Error("F2BI payload 長度超出 BMP 像素容量，檔案可能已遭截斷。");
+        }
+
+        let rawFilename;
+        try {
+          rawFilename = textDecoder.decode(extracted.subarray(PAYLOAD_HEADER_BYTES, filenameEnd));
+        } catch {
+          throw new Error("F2BI 檔名不是有效的 UTF-8。");
+        }
+        const filename = sanitizeFilename(rawFilename);
+        const restoredBytes = extracted.slice(filenameEnd, contentEnd);
+
+        hooks.onProgress?.(84, "驗證 SHA-256");
+        const digest = await sha256(restoredBytes);
+        const storedChecksum = extracted.slice(8, 16);
+        const checksumMatch = equalBytes(storedChecksum, digest.subarray(0, 8));
+
+        hooks.onProgress?.(100, checksumMatch ? "完整性驗證完成" : "完整性驗證失敗");
+        return {
+          bytes: restoredBytes,
+          blob: new Blob([restoredBytes], { type: "application/octet-stream" }),
+          filename,
+          sourceFilename: file.name,
+          sourceSize: bytes.byteLength,
+          checksum: toHex(digest),
+          storedChecksum: toHex(storedChecksum),
+          checksumMatch,
+          dimensions
+        };
+      }
+
+      function formatBytes(bytes) {
+        if (!Number.isFinite(bytes)) return "-";
+        if (bytes === 0) return "0 B";
+        const units = ["B", "KiB", "MiB", "GiB"];
+        const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+        const value = bytes / 1024 ** index;
+        return `${value >= 100 || index === 0 ? value.toFixed(0) : value.toFixed(2)} ${units[index]}`;
+      }
+
+      const elements = {
+        tabs: Array.from(document.querySelectorAll(".tab")),
+        panel: document.getElementById("tool-panel"),
+        inputHeading: document.getElementById("input-heading"),
+        dropZone: document.getElementById("drop-zone"),
+        fileInput: document.getElementById("file-input"),
+        dropTitle: document.getElementById("drop-title"),
+        dropNote: document.getElementById("drop-note"),
+        fileInfo: document.getElementById("file-info"),
+        sourceName: document.getElementById("source-name"),
+        sourceSize: document.getElementById("source-size"),
+        sourceSha: document.getElementById("source-sha"),
+        copyName: document.getElementById("copy-name"),
+        copySha: document.getElementById("copy-sha"),
+        estimateRow: document.getElementById("estimate-row"),
+        estimatedSize: document.getElementById("estimated-size"),
+        progressWrap: document.getElementById("progress-wrap"),
+        progressTrack: document.querySelector(".progress-track"),
+        progressBar: document.getElementById("progress-bar"),
+        progressStage: document.getElementById("progress-stage"),
+        progressPercent: document.getElementById("progress-percent"),
+        resultEmpty: document.getElementById("result-empty"),
+        emptyText: document.getElementById("empty-text"),
+        result: document.getElementById("result"),
+        statusIcon: document.getElementById("status-icon"),
+        resultTitle: document.getElementById("result-title"),
+        resultMessage: document.getElementById("result-message"),
+        resultBody: document.getElementById("result-body"),
+        outputName: document.getElementById("output-name"),
+        outputSize: document.getElementById("output-size"),
+        dimensionsRow: document.getElementById("dimensions-row"),
+        dimensions: document.getElementById("dimensions"),
+        downloadButton: document.getElementById("download-button")
+      };
+
+      let mode = "encode";
+      let activeResult = null;
+      let processing = false;
+
+      function setProgress(value, stage) {
+        const safeValue = Math.min(100, Math.max(0, Math.round(value)));
+        elements.progressWrap.hidden = false;
+        elements.progressBar.style.width = `${safeValue}%`;
+        elements.progressTrack.setAttribute("aria-valuenow", String(safeValue));
+        elements.progressPercent.textContent = `${safeValue}%`;
+        elements.progressStage.textContent = stage;
+      }
+
+      function resetResult() {
+        activeResult = null;
+        elements.result.className = "result";
+        elements.resultEmpty.hidden = false;
+        elements.emptyText.textContent = "等待來源檔案";
+        elements.resultBody.hidden = false;
+        elements.downloadButton.disabled = false;
+      }
+
+      function resetFileState() {
+        elements.fileInput.value = "";
+        elements.fileInfo.hidden = true;
+        elements.progressWrap.hidden = true;
+        elements.progressBar.style.width = "0%";
+        elements.sourceSha.textContent = "尚未計算";
+        elements.copySha.disabled = true;
+        resetResult();
+      }
+
+      function setMode(nextMode) {
+        if (processing || nextMode === mode) return;
+        mode = nextMode;
+        elements.tabs.forEach((tab) => {
+          const selected = tab.dataset.mode === mode;
+          tab.setAttribute("aria-selected", String(selected));
+          tab.tabIndex = selected ? 0 : -1;
+        });
+        const selectedTab = mode === "encode" ? document.getElementById("encode-tab") : document.getElementById("decode-tab");
+        elements.panel.setAttribute("aria-labelledby", selectedTab.id);
+        elements.inputHeading.textContent = mode === "encode" ? "來源檔案" : "來源 BMP";
+        elements.dropTitle.textContent = mode === "encode" ? "拖放檔案或選擇檔案" : "拖放 BMP 或選擇檔案";
+        elements.dropNote.textContent = mode === "encode" ? "任意格式 · 上限 150 MiB" : "file2bmp 產生的 24-bit BMP";
+        elements.fileInput.accept = mode === "decode" ? ".bmp,image/bmp" : "";
+        elements.estimateRow.hidden = mode === "decode";
+        resetFileState();
+      }
+
+      function showResult(type, title, message, result) {
+        elements.resultEmpty.hidden = true;
+        elements.result.className = `result is-visible${type === "warning" ? " is-warning" : type === "error" ? " is-error" : ""}`;
+        elements.statusIcon.textContent = type === "error" ? "!" : type === "warning" ? "!" : "✓";
+        elements.resultTitle.textContent = title;
+        elements.resultMessage.textContent = message;
+        elements.resultBody.hidden = type === "error";
+
+        if (result) {
+          elements.outputName.textContent = result.filename;
+          elements.outputSize.textContent = formatBytes(result.blob.size);
+          elements.dimensionsRow.hidden = !result.dimensions;
+          if (result.dimensions) elements.dimensions.textContent = `${result.dimensions.width} × ${result.dimensions.height} px`;
+          elements.downloadButton.textContent = mode === "encode" ? "下載 BMP" : "下載還原檔案";
+        }
+      }
+
+      async function copyText(value, button) {
+        if (!value || value === "尚未計算") return;
+        try {
+          if (navigator.clipboard && globalThis.isSecureContext) {
+            await navigator.clipboard.writeText(value);
+          } else {
+            const area = document.createElement("textarea");
+            area.value = value;
+            area.style.position = "fixed";
+            area.style.opacity = "0";
+            document.body.appendChild(area);
+            area.select();
+            document.execCommand("copy");
+            area.remove();
+          }
+          const previous = button.textContent;
+          button.textContent = "完成";
+          setTimeout(() => { button.textContent = previous; }, 1200);
+        } catch {
+          showResult("error", "無法複製", "瀏覽器拒絕剪貼簿權限。", null);
+        }
+      }
+
+      function downloadResult() {
+        if (!activeResult) return;
+        const url = URL.createObjectURL(activeResult.blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = activeResult.filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      async function processFile(file) {
+        if (processing) return;
+        processing = true;
+        activeResult = null;
+        elements.dropZone.classList.add("is-busy");
+        elements.fileInfo.hidden = false;
+        elements.sourceName.textContent = file.name || "unknown";
+        elements.sourceSize.textContent = formatBytes(file.size);
+        elements.sourceSha.textContent = "尚未計算";
+        elements.copySha.disabled = true;
+        elements.result.className = "result";
+        elements.resultEmpty.hidden = false;
+        elements.emptyText.textContent = "處理中";
+
+        if (mode === "encode") {
+          try {
+            const sanitized = sanitizeFilename(file.name);
+            const filenameBytes = textEncoder.encode(sanitized);
+            if (filenameBytes.byteLength <= MAX_FILENAME_BYTES && file.size <= MAX_ORIGINAL_BYTES) {
+              const estimate = calculateDimensions(PAYLOAD_HEADER_BYTES + filenameBytes.byteLength + file.size);
+              elements.estimatedSize.textContent = formatBytes(estimate.bmpFileSize);
+            } else {
+              elements.estimatedSize.textContent = "超出限制";
+            }
+          } catch {
+            elements.estimatedSize.textContent = "無法計算";
+          }
+        }
+
+        try {
+          const hooks = { onProgress: setProgress };
+          const result = mode === "encode"
+            ? await encodeFileToBmp(file, hooks)
+            : await decodeBmpToFile(file, hooks);
+          activeResult = result;
+          elements.sourceSha.textContent = result.checksum;
+          elements.copySha.disabled = false;
+
+          if (mode === "decode" && !result.checksumMatch) {
+            showResult("warning", "Checksum 不一致", "檔案可能已損毀或遭修改，仍可下載還原內容。", result);
+          } else if (mode === "decode") {
+            showResult("success", "完整性已驗證", "SHA-256 比對成功，可下載還原檔案。", result);
+          } else {
+            showResult("success", "BMP 已建立", "檔案已封裝完成，可下載轉換結果。", result);
+          }
+        } catch (error) {
+          setProgress(0, "處理失敗");
+          showResult("error", "無法完成轉換", error instanceof Error ? error.message : "發生未知錯誤。", null);
+        } finally {
+          processing = false;
+          elements.dropZone.classList.remove("is-busy");
+        }
+      }
+
+      elements.tabs.forEach((tab) => {
+        tab.addEventListener("click", () => setMode(tab.dataset.mode));
+        tab.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+          event.preventDefault();
+          const nextMode = mode === "encode" ? "decode" : "encode";
+          setMode(nextMode);
+          document.querySelector(`.tab[data-mode="${nextMode}"]`).focus();
+        });
+      });
+
+      elements.fileInput.addEventListener("change", () => {
+        const [file] = elements.fileInput.files;
+        if (file) processFile(file);
+      });
+
+      elements.dropZone.addEventListener("keydown", (event) => {
+        if ((event.key === "Enter" || event.key === " ") && event.target === elements.dropZone) {
+          event.preventDefault();
+          elements.fileInput.click();
+        }
+      });
+
+      ["dragenter", "dragover"].forEach((eventName) => {
+        window.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          if (!processing) elements.dropZone.classList.add("is-dragging");
+        });
+      });
+
+      ["dragleave", "drop"].forEach((eventName) => {
+        window.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          elements.dropZone.classList.remove("is-dragging");
+        });
+      });
+
+      window.addEventListener("drop", (event) => {
+        if (processing) return;
+        const [file] = event.dataTransfer.files;
+        if (file) processFile(file);
+      });
+
+      elements.copyName.addEventListener("click", () => copyText(elements.sourceName.textContent, elements.copyName));
+      elements.copySha.addEventListener("click", () => copyText(elements.sourceSha.textContent, elements.copySha));
+      elements.downloadButton.addEventListener("click", downloadResult);
+
+      window.file2bmp = Object.freeze({
+        constants: Object.freeze({
+          MAX_ORIGINAL_BYTES,
+          MAX_FILENAME_BYTES,
+          PAYLOAD_HEADER_BYTES,
+          BMP_HEADER_BYTES,
+          FORMAT_VERSION,
+          MAX_BMP_BYTES
+        }),
+        sanitizeFilename,
+        calculateDimensions,
+        encodeFileToBmp,
+        decodeBmpToFile,
+        validateBmpHeader,
+        sha256,
+        toHex,
+        equalBytes
+      });
+    })();
+  </script>
+</body>
+</html>
