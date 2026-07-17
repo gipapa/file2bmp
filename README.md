@@ -16,12 +16,11 @@
 
 ## 直接使用
 
-不需要安裝套件或啟動伺服器。
+use github pages: https://gipapa.github.io/file2bmp/
 
-1. 下載或 clone 此儲存庫。
-2. 直接用瀏覽器開啟 `index.html`。
-3. 選擇 `File to BMP` 或 `BMP to File`。
-4. 拖入檔案，等待處理完成後下載結果。
+or deploy to your PC:
+1. 下載 `index.html`。
+2. 直接用瀏覽器開啟
 
 ### File to BMP
 
